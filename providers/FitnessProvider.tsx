@@ -44,6 +44,8 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
   const [favoriteExercises, setFavoriteExercises] = useState<FavoriteExercise[]>([]);
   const [favoriteMeals, setFavoriteMeals] = useState<FavoriteMeal[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [remoteProfileChecked, setRemoteProfileChecked] = useState<boolean>(false);
+  const [hasRemoteProfile, setHasRemoteProfile] = useState<boolean>(false);
 
   useEffect(() => {
     loadData();
@@ -153,6 +155,13 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
       setIsLoading(false);
       console.log('[FitnessProvider] Step 1 complete: UI ready with cached data');
 
+      if (!user) {
+        console.log('[FitnessProvider] No user logged in, using local cache only');
+        setRemoteProfileChecked(true);
+        setHasRemoteProfile(false);
+        return;
+      }
+
       if (user) {
         console.log('[FitnessProvider] Step 2: Refreshing from remote for user:', user.id);
         try {
@@ -168,9 +177,15 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
               remoteFitnessRepo.fetchProgressEntries(user.id),
               remoteFitnessRepo.fetchWorkoutLogs(user.id),
             ]);
+            
+            setRemoteProfileChecked(true);
+            setHasRemoteProfile(!!remoteProfile);
+            console.log('[FitnessProvider] Supabase check: hasRemoteProfile =', !!remoteProfile);
           } catch (fetchError: any) {
             if (fetchError.message === 'NETWORK_ERROR') {
               console.warn('[FitnessProvider] Network error: Supabase unreachable, using cached data only');
+              setRemoteProfileChecked(true);
+              setHasRemoteProfile(false);
               console.log('[FitnessProvider] Step 2 complete: Running in offline mode');
               return;
             }
@@ -186,6 +201,9 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
             if (!remoteProfile && localProfile) {
               console.log('[FitnessProvider] Migration: Uploading local profile to remote');
               await remoteFitnessRepo.upsertProfile(user.id, localProfile);
+              remoteProfile = localProfile;
+              setHasRemoteProfile(true);
+              console.log('[FitnessProvider] Migration: Profile uploaded, hasRemoteProfile = true');
             }
             
             if (remoteProgress.length === 0 && localProgress.length > 0) {
@@ -224,6 +242,8 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
           
           console.log('[FitnessProvider] Step 2 complete: Remote sync successful');
         } catch (remoteError: any) {
+          setRemoteProfileChecked(true);
+          setHasRemoteProfile(false);
           if (remoteError?.message === 'NETWORK_ERROR') {
             console.warn('[FitnessProvider] Network error during migration, skipping remote sync');
           } else {
@@ -235,8 +255,6 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
             }
           }
         }
-      } else {
-        console.log('[FitnessProvider] Step 2 skipped: No user logged in');
       }
     } catch (error) {
       console.error("[FitnessProvider] Boot sequence error:", error);
@@ -271,6 +289,11 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
 
       await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(newProfile));
       setProfile(newProfile);
+      
+      if (user) {
+        setHasRemoteProfile(true);
+        console.log('[FitnessProvider] Profile saved, hasRemoteProfile = true');
+      }
     } catch (error) {
       console.error("Error saving profile:", error);
       throw error;
@@ -1063,6 +1086,6 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
     calculateTDEE,
     getTargetCalories,
     getCurrentStreak,
-    hasProfile: !!profile,
+    hasProfile: user ? (remoteProfileChecked ? hasRemoteProfile : false) : !!profile,
   };
 });
