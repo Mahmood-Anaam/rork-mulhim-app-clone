@@ -40,12 +40,12 @@ export const remoteFitnessRepo = {
       .single();
 
     if (error) {
-      console.error('[RemoteFitnessRepo] Error upserting profile:', {
+      console.error('[RemoteFitnessRepo] Error upserting profile:', JSON.stringify({
         message: error.message,
         details: error.details,
         hint: error.hint,
         code: error.code,
-      });
+      }, null, 2));
       throw error;
     }
 
@@ -67,12 +67,12 @@ export const remoteFitnessRepo = {
         console.log('[RemoteFitnessRepo] Profile not found');
         return null;
       }
-      console.error('[RemoteFitnessRepo] Error fetching profile:', {
+      console.error('[RemoteFitnessRepo] Error fetching profile:', JSON.stringify({
         message: error.message,
         details: error.details,
         hint: error.hint,
         code: error.code,
-      });
+      }, null, 2));
       throw error;
     }
 
@@ -94,12 +94,12 @@ export const remoteFitnessRepo = {
       .single();
 
     if (error) {
-      console.error('[RemoteFitnessRepo] Error inserting progress entry:', {
+      console.error('[RemoteFitnessRepo] Error inserting progress entry:', JSON.stringify({
         message: error.message,
         details: error.details,
         hint: error.hint,
         code: error.code,
-      });
+      }, null, 2));
       throw error;
     }
 
@@ -117,12 +117,12 @@ export const remoteFitnessRepo = {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('[RemoteFitnessRepo] Error fetching progress entries:', {
+      console.error('[RemoteFitnessRepo] Error fetching progress entries:', JSON.stringify({
         message: error.message,
         details: error.details,
         hint: error.hint,
         code: error.code,
-      });
+      }, null, 2));
       throw error;
     }
 
@@ -144,12 +144,12 @@ export const remoteFitnessRepo = {
       .single();
 
     if (error) {
-      console.error('[RemoteFitnessRepo] Error inserting workout log:', {
+      console.error('[RemoteFitnessRepo] Error inserting workout log:', JSON.stringify({
         message: error.message,
         details: error.details,
         hint: error.hint,
         code: error.code,
-      });
+      }, null, 2));
       throw error;
     }
 
@@ -167,12 +167,12 @@ export const remoteFitnessRepo = {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('[RemoteFitnessRepo] Error fetching workout logs:', {
+      console.error('[RemoteFitnessRepo] Error fetching workout logs:', JSON.stringify({
         message: error.message,
         details: error.details,
         hint: error.hint,
         code: error.code,
-      });
+      }, null, 2));
       throw error;
     }
 

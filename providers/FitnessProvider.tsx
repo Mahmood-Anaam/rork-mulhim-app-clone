@@ -181,12 +181,10 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
         } catch (remoteError) {
           console.error('[FitnessProvider] Step 2 failed: Error syncing with remote, using cached data');
           if (remoteError instanceof Error) {
-            console.error('Error message:', remoteError.message);
-            console.error('Error stack:', remoteError.stack);
-          } else if (typeof remoteError === 'object' && remoteError !== null) {
-            console.error('Error details:', remoteError);
+            console.error('[FitnessProvider] Error message:', remoteError.message);
+            console.error('[FitnessProvider] Error stack:', remoteError.stack);
           } else {
-            console.error('Unknown error:', remoteError);
+            console.error('[FitnessProvider] Error details:', JSON.stringify(remoteError, null, 2));
           }
         }
       } else {
