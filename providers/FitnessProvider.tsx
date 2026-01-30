@@ -88,8 +88,15 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
             await AsyncStorage.setItem(WORKOUT_LOGS_KEY, JSON.stringify(remoteLogs));
           }
         } catch (remoteError) {
-          console.error('[FitnessProvider] Error loading from Supabase, falling back to local:', 
-            remoteError instanceof Error ? remoteError.message : JSON.stringify(remoteError, null, 2));
+          console.error('[FitnessProvider] Error loading from Supabase, falling back to local:');
+          if (remoteError instanceof Error) {
+            console.error('Error message:', remoteError.message);
+            console.error('Error stack:', remoteError.stack);
+          } else if (typeof remoteError === 'object' && remoteError !== null) {
+            console.error('Error details:', remoteError);
+          } else {
+            console.error('Unknown error:', remoteError);
+          }
         }
       }
 
