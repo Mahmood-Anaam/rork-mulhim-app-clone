@@ -6,7 +6,7 @@ import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import Colors from "@/constants/colors";
 
 export default function Index() {
-  const { hasProfile, isLoading: profileLoading } = useFitness();
+  const { hasProfile, hasCompletedOnboarding, isLoading: profileLoading } = useFitness();
   const { hasSelectedLanguage, isLoading: languageLoading, t } = useLanguage();
   const { user } = useAuth();
 
@@ -21,6 +21,10 @@ export default function Index() {
 
   if (!hasSelectedLanguage) {
     return <Redirect href="/welcome" />;
+  }
+
+  if (hasCompletedOnboarding && user) {
+    return <Redirect href="/(tabs)/plan" />;
   }
 
   if (hasProfile) {

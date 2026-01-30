@@ -28,6 +28,7 @@ const GROCERY_LIST_KEY = "@mulhim_grocery_list";
 const FAVORITE_EXERCISES_KEY = "@mulhim_favorite_exercises";
 const FAVORITE_MEALS_KEY = "@mulhim_favorite_meals";
 const MIGRATION_DONE_KEY = "@mulhim_migration_done";
+const ONBOARDING_COMPLETED_KEY = "@mulhim_onboarding_completed";
 
 export const [FitnessProvider, useFitness] = createContextHook(() => {
   const { user } = useAuth();
@@ -44,6 +45,7 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
   const [favoriteExercises, setFavoriteExercises] = useState<FavoriteExercise[]>([]);
   const [favoriteMeals, setFavoriteMeals] = useState<FavoriteMeal[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(false);
 
   useEffect(() => {
     loadData();
@@ -70,7 +72,7 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
       console.log('[FitnessProvider] Boot sequence started');
       
       console.log('[FitnessProvider] Step 1: Hydrating from local cache');
-      const [profileData, progressData, logsData, nutritionData, mealPlanData, groceryData, favoriteExercisesData, favoriteMealsData] = await Promise.all([
+      const [profileData, progressData, logsData, nutritionData, mealPlanData, groceryData, favoriteExercisesData, favoriteMealsData, onboardingCompletedData] = await Promise.all([
         AsyncStorage.getItem(PROFILE_KEY),
         AsyncStorage.getItem(PROGRESS_KEY),
         AsyncStorage.getItem(WORKOUT_LOGS_KEY),
@@ -79,6 +81,7 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
         AsyncStorage.getItem(GROCERY_LIST_KEY),
         AsyncStorage.getItem(FAVORITE_EXERCISES_KEY),
         AsyncStorage.getItem(FAVORITE_MEALS_KEY),
+        AsyncStorage.getItem(ONBOARDING_COMPLETED_KEY),
       ]);
 
       if (profileData) {
@@ -148,6 +151,10 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
         if (parsed.length === 0 && favoriteMealsData) {
           await AsyncStorage.removeItem(FAVORITE_MEALS_KEY);
         }
+      }
+      if (onboardingCompletedData === 'true') {
+        setHasCompletedOnboarding(true);
+        console.log('[FitnessProvider] Cache: Onboarding completed flag found');
       }
 
       setIsLoading(false);
@@ -270,7 +277,9 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
       }
 
       await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(newProfile));
+      await AsyncStorage.setItem(ONBOARDING_COMPLETED_KEY, 'true');
       setProfile(newProfile);
+      setHasCompletedOnboarding(true);
     } catch (error) {
       console.error("Error saving profile:", error);
       throw error;
@@ -1064,5 +1073,6 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
     getTargetCalories,
     getCurrentStreak,
     hasProfile: !!profile,
+    hasCompletedOnboarding,
   };
 });
