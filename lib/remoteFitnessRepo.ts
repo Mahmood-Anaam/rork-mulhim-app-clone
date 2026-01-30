@@ -25,16 +25,6 @@ export interface WorkoutLogRow {
   created_at: string;
 }
 
-async function checkSupabaseConnection(): Promise<boolean> {
-  try {
-    const { error } = await supabase.from('profiles').select('id').limit(1);
-    return !error || error.code === 'PGRST116';
-  } catch (e) {
-    console.warn('[RemoteFitnessRepo] Supabase connection check failed:', e);
-    return false;
-  }
-}
-
 export const remoteFitnessRepo = {
   async upsertProfile(userId: string, profile: FitnessProfile) {
     console.log('[RemoteFitnessRepo] Upserting profile for user:', userId);
