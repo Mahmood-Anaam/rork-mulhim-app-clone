@@ -27,6 +27,7 @@ const MEAL_PLAN_KEY = "@mulhim_meal_plan";
 const GROCERY_LIST_KEY = "@mulhim_grocery_list";
 const FAVORITE_EXERCISES_KEY = "@mulhim_favorite_exercises";
 const FAVORITE_MEALS_KEY = "@mulhim_favorite_meals";
+const MIGRATION_DONE_KEY = "@mulhim_migration_done";
 
 export const [FitnessProvider, useFitness] = createContextHook(() => {
   const { user } = useAuth();
@@ -155,11 +156,42 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
       if (user) {
         console.log('[FitnessProvider] Step 2: Refreshing from remote for user:', user.id);
         try {
+          const migrationDone = await AsyncStorage.getItem(MIGRATION_DONE_KEY);
+          
           const [remoteProfile, remoteProgress, remoteLogs] = await Promise.all([
             remoteFitnessRepo.fetchProfile(user.id),
             remoteFitnessRepo.fetchProgressEntries(user.id),
             remoteFitnessRepo.fetchWorkoutLogs(user.id),
           ]);
+
+          if (!migrationDone) {
+            console.log('[FitnessProvider] Migration: Checking for local data to upload');
+            const localProfile = safeJsonParse<FitnessProfile | null>(profileData || '', null);
+            const localProgress = safeJsonParse<ProgressEntry[]>(progressData || '', []);
+            const localLogs = safeJsonParse<WorkoutLog[]>(logsData || '', []);
+
+            if (!remoteProfile && localProfile) {
+              console.log('[FitnessProvider] Migration: Uploading local profile to remote');
+              await remoteFitnessRepo.upsertProfile(user.id, localProfile);
+            }
+            
+            if (remoteProgress.length === 0 && localProgress.length > 0) {
+              console.log('[FitnessProvider] Migration: Uploading', localProgress.length, 'progress entries to remote');
+              for (const entry of localProgress) {
+                await remoteFitnessRepo.insertProgressEntry(user.id, entry);
+              }
+            }
+            
+            if (remoteLogs.length === 0 && localLogs.length > 0) {
+              console.log('[FitnessProvider] Migration: Uploading', localLogs.length, 'workout logs to remote');
+              for (const log of localLogs) {
+                await remoteFitnessRepo.insertWorkoutLog(user.id, log);
+              }
+            }
+
+            await AsyncStorage.setItem(MIGRATION_DONE_KEY, 'true');
+            console.log('[FitnessProvider] Migration: Complete, flag set');
+          }
 
           if (remoteProfile) {
             setProfile(remoteProfile);
