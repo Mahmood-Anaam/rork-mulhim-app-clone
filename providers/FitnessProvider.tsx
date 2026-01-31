@@ -152,8 +152,12 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
         }
       }
 
-      setIsLoading(false);
-      console.log('[FitnessProvider] Step 1 complete: UI ready with cached data');
+      if (!user) {
+        setIsLoading(false);
+        console.log('[FitnessProvider] Step 1 complete: UI ready with cached data (no user)');
+      } else {
+        console.log('[FitnessProvider] Step 1 complete: Cached data loaded, waiting for remote check');
+      }
 
       if (!user) {
         console.log('[FitnessProvider] No user logged in, using local cache only');
@@ -180,12 +184,14 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
             
             setRemoteProfileChecked(true);
             setHasRemoteProfile(!!remoteProfile);
+            setIsLoading(false);
             console.log('[FitnessProvider] Supabase check: hasRemoteProfile =', !!remoteProfile);
           } catch (fetchError: any) {
             if (fetchError.message === 'NETWORK_ERROR') {
               console.warn('[FitnessProvider] Network error: Supabase unreachable, using cached data only');
               setRemoteProfileChecked(true);
               setHasRemoteProfile(false);
+              setIsLoading(false);
               console.log('[FitnessProvider] Step 2 complete: Running in offline mode');
               return;
             }
@@ -244,6 +250,7 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
         } catch (remoteError: any) {
           setRemoteProfileChecked(true);
           setHasRemoteProfile(false);
+          setIsLoading(false);
           if (remoteError?.message === 'NETWORK_ERROR') {
             console.warn('[FitnessProvider] Network error during migration, skipping remote sync');
           } else {
