@@ -6,11 +6,11 @@ import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import Colors from "@/constants/colors";
 
 export default function Index() {
-  const { hasProfile, isLoading: profileLoading } = useFitness();
+  const { hasProfile, isLoading: profileLoading, profile } = useFitness();
   const { hasSelectedLanguage, isLoading: languageLoading, t } = useLanguage();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
 
-  if (languageLoading || profileLoading) {
+  if (languageLoading || profileLoading || authLoading) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color={Colors.primary} />
@@ -23,14 +23,22 @@ export default function Index() {
     return <Redirect href="/welcome" />;
   }
 
-  if (hasProfile) {
+  if (user && hasProfile && profile) {
+    console.log('[Index] User logged in with profile, redirecting to plan');
     return <Redirect href="/(tabs)/plan" />;
   }
 
-  if (user) {
+  if (user && !hasProfile) {
+    console.log('[Index] User logged in without profile, redirecting to onboarding');
     return <Redirect href="/onboarding" />;
   }
 
+  if (!user && hasProfile) {
+    console.log('[Index] Guest with local profile, redirecting to plan');
+    return <Redirect href="/(tabs)/plan" />;
+  }
+
+  console.log('[Index] No user, no profile, showing account prompt');
   return <Redirect href="/account-prompt" />;
 }
 
