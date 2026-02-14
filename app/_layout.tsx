@@ -33,6 +33,7 @@ function RootLayoutNav() {
       <Stack.Screen name="workout-details" options={{ headerShown: false }} />
       <Stack.Screen name="bioinformatics" options={{ headerShown: false }} />
       <Stack.Screen name="meal-details" options={{ headerShown: false }} />
+      <Stack.Screen name="account-prompt" options={{ headerShown: false }} />
     </Stack>
   );
 }
