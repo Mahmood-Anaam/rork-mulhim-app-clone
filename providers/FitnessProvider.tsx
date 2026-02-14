@@ -19,12 +19,15 @@ import {
 import { useAuth } from "@/providers/AuthProvider";
 import { remoteFitnessRepo } from "@/lib/remoteFitnessRepo";
 
+const PROFILE_KEY = "@mulhim_profile";
+const PROGRESS_KEY = "@mulhim_progress";
 const WORKOUT_LOGS_KEY = "@mulhim_workout_logs";
 const NUTRITION_KEY = "@mulhim_nutrition";
 const MEAL_PLAN_KEY = "@mulhim_meal_plan";
 const GROCERY_LIST_KEY = "@mulhim_grocery_list";
 const FAVORITE_EXERCISES_KEY = "@mulhim_favorite_exercises";
 const FAVORITE_MEALS_KEY = "@mulhim_favorite_meals";
+const MIGRATION_DONE_KEY = "@mulhim_migration_done";
 
 export const [FitnessProvider, useFitness] = createContextHook(() => {
   const { user } = useAuth();
@@ -67,9 +70,11 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
   const loadData = async () => {
     try {
       console.log('[FitnessProvider] Boot sequence started');
-
-      console.log('[FitnessProvider] Step 1: Hydrating local-only data from AsyncStorage');
-      const [logsData, nutritionData, mealPlanData, groceryData, favoriteExercisesData, favoriteMealsData] = await Promise.all([
+      
+      console.log('[FitnessProvider] Step 1: Hydrating from local cache');
+      const [profileData, progressData, logsData, nutritionData, mealPlanData, groceryData, favoriteExercisesData, favoriteMealsData] = await Promise.all([
+        AsyncStorage.getItem(PROFILE_KEY),
+        AsyncStorage.getItem(PROGRESS_KEY),
         AsyncStorage.getItem(WORKOUT_LOGS_KEY),
         AsyncStorage.getItem(NUTRITION_KEY),
         AsyncStorage.getItem(MEAL_PLAN_KEY),
@@ -78,6 +83,23 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
         AsyncStorage.getItem(FAVORITE_MEALS_KEY),
       ]);
 
+      if (profileData) {
+        const parsed = safeJsonParse<FitnessProfile | null>(profileData, null);
+        if (parsed) {
+          setProfile(parsed);
+          console.log('[FitnessProvider] Cache: Profile hydrated');
+        } else {
+          await AsyncStorage.removeItem(PROFILE_KEY);
+        }
+      }
+      if (progressData) {
+        const parsed = safeJsonParse<ProgressEntry[]>(progressData, []);
+        setProgress(parsed);
+        console.log('[FitnessProvider] Cache: Progress hydrated:', parsed.length);
+        if (parsed.length === 0 && progressData) {
+          await AsyncStorage.removeItem(PROGRESS_KEY);
+        }
+      }
       if (logsData) {
         const parsed = safeJsonParse<WorkoutLog[]>(logsData, []);
         setWorkoutLogs(parsed);
@@ -131,71 +153,114 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
       }
 
       if (!user) {
-        console.log('[FitnessProvider] No user logged in, skipping remote fetch');
+        setIsLoading(false);
+        console.log('[FitnessProvider] Step 1 complete: UI ready with cached data (no user)');
+      } else {
+        console.log('[FitnessProvider] Step 1 complete: Cached data loaded, keeping isLoading=true until remote check');
+      }
+
+      if (!user) {
+        console.log('[FitnessProvider] No user logged in, using local cache only');
         setRemoteProfileChecked(true);
         setHasRemoteProfile(false);
-        setIsLoading(false);
         return;
       }
 
-      console.log('[FitnessProvider] Step 2: Fetching profile & progress from remote for user:', user.id);
-      try {
-        let remoteProfile: FitnessProfile | null = null;
-        let remoteProgress: ProgressEntry[] = [];
-        let remoteLogs: WorkoutLog[] = [];
-
+      if (user) {
+        console.log('[FitnessProvider] Step 2: Refreshing from remote for user:', user.id);
         try {
-          [remoteProfile, remoteProgress, remoteLogs] = await Promise.all([
-            remoteFitnessRepo.fetchProfile(user.id),
-            remoteFitnessRepo.fetchProgressEntries(user.id),
-            remoteFitnessRepo.fetchWorkoutLogs(user.id),
-          ]);
-          console.log('[FitnessProvider] Remote fetch success: profile=', !!remoteProfile, 'progress=', remoteProgress.length, 'logs=', remoteLogs.length);
-        } catch (fetchError: any) {
-          if (fetchError.message === 'NETWORK_ERROR') {
-            console.warn('[FitnessProvider] Network error: Supabase unreachable, running in offline mode');
+          const migrationDone = await AsyncStorage.getItem(MIGRATION_DONE_KEY);
+          
+          let remoteProfile = null;
+          let remoteProgress: ProgressEntry[] = [];
+          let remoteLogs: WorkoutLog[] = [];
+
+          try {
+            [remoteProfile, remoteProgress, remoteLogs] = await Promise.all([
+              remoteFitnessRepo.fetchProfile(user.id),
+              remoteFitnessRepo.fetchProgressEntries(user.id),
+              remoteFitnessRepo.fetchWorkoutLogs(user.id),
+            ]);
+            
             setRemoteProfileChecked(true);
-            setHasRemoteProfile(false);
+            setHasRemoteProfile(!!remoteProfile);
             setIsLoading(false);
-            return;
+            console.log('[FitnessProvider] Supabase check: hasRemoteProfile =', !!remoteProfile);
+          } catch (fetchError: any) {
+            if (fetchError.message === 'NETWORK_ERROR') {
+              console.warn('[FitnessProvider] Network error: Supabase unreachable, using cached data only');
+              setRemoteProfileChecked(true);
+              setHasRemoteProfile(false);
+              setIsLoading(false);
+              console.log('[FitnessProvider] Step 2 complete: Running in offline mode');
+              return;
+            }
+            throw fetchError;
           }
-          throw fetchError;
-        }
 
-        setRemoteProfileChecked(true);
-        setHasRemoteProfile(!!remoteProfile);
+          if (!migrationDone) {
+            console.log('[FitnessProvider] Migration: Checking for local data to upload');
+            const localProfile = safeJsonParse<FitnessProfile | null>(profileData || '', null);
+            const localProgress = safeJsonParse<ProgressEntry[]>(progressData || '', []);
+            const localLogs = safeJsonParse<WorkoutLog[]>(logsData || '', []);
 
-        if (remoteProfile) {
-          setProfile(remoteProfile);
-          console.log('[FitnessProvider] Remote: Profile loaded successfully');
-        } else {
-          console.log('[FitnessProvider] Remote: No profile found for this user');
-        }
+            if (!remoteProfile && localProfile) {
+              console.log('[FitnessProvider] Migration: Uploading local profile to remote');
+              await remoteFitnessRepo.upsertProfile(user.id, localProfile);
+              remoteProfile = localProfile;
+              setHasRemoteProfile(true);
+              console.log('[FitnessProvider] Migration: Profile uploaded, hasRemoteProfile = true');
+            }
+            
+            if (remoteProgress.length === 0 && localProgress.length > 0) {
+              console.log('[FitnessProvider] Migration: Uploading', localProgress.length, 'progress entries to remote');
+              for (const entry of localProgress) {
+                await remoteFitnessRepo.insertProgressEntry(user.id, entry);
+              }
+            }
+            
+            if (remoteLogs.length === 0 && localLogs.length > 0) {
+              console.log('[FitnessProvider] Migration: Uploading', localLogs.length, 'workout logs to remote');
+              for (const log of localLogs) {
+                await remoteFitnessRepo.insertWorkoutLog(user.id, log);
+              }
+            }
 
-        if (remoteProgress.length > 0) {
-          setProgress(remoteProgress);
-          console.log('[FitnessProvider] Remote: Progress loaded:', remoteProgress.length, 'entries');
-        } else {
-          setProgress([]);
-          console.log('[FitnessProvider] Remote: No progress entries found');
-        }
+            await AsyncStorage.setItem(MIGRATION_DONE_KEY, 'true');
+            console.log('[FitnessProvider] Migration: Complete, flag set');
+          }
 
-        if (remoteLogs.length > 0) {
-          setWorkoutLogs(remoteLogs);
-          await AsyncStorage.setItem(WORKOUT_LOGS_KEY, JSON.stringify(remoteLogs));
-          console.log('[FitnessProvider] Remote: Workout logs loaded and cached:', remoteLogs.length);
-        }
-
-        setIsLoading(false);
-        console.log('[FitnessProvider] Boot sequence complete');
-      } catch (remoteError: any) {
-        setRemoteProfileChecked(true);
-        setHasRemoteProfile(false);
-        setIsLoading(false);
-        if (remoteError?.message === 'NETWORK_ERROR') {
-          console.warn('[FitnessProvider] Network error during remote fetch, using offline mode');
-        } else {
-          console.error('[FitnessProvider] Remote fetch failed:', remoteError instanceof Error ? remoteError.message : JSON.stringify(remoteError, null, 2));
+          if (remoteProfile) {
+            setProfile(remoteProfile);
+            await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(remoteProfile));
+            console.log('[FitnessProvider] Remote: Profile refreshed and cached');
+          }
+          if (remoteProgress.length > 0) {
+            setProgress(remoteProgress);
+            await AsyncStorage.setItem(PROGRESS_KEY, JSON.stringify(remoteProgress));
+            console.log('[FitnessProvider] Remote: Progress refreshed and cached:', remoteProgress.length);
+          }
+          if (remoteLogs.length > 0) {
+            setWorkoutLogs(remoteLogs);
+            await AsyncStorage.setItem(WORKOUT_LOGS_KEY, JSON.stringify(remoteLogs));
+            console.log('[FitnessProvider] Remote: Workout logs refreshed and cached:', remoteLogs.length);
+          }
+          
+          console.log('[FitnessProvider] Step 2 complete: Remote sync successful');
+        } catch (remoteError: any) {
+          setRemoteProfileChecked(true);
+          setHasRemoteProfile(false);
+          setIsLoading(false);
+          if (remoteError?.message === 'NETWORK_ERROR') {
+            console.warn('[FitnessProvider] Network error during migration, skipping remote sync');
+          } else {
+            console.error('[FitnessProvider] Step 2 failed: Error syncing with remote, using cached data');
+            if (remoteError instanceof Error) {
+              console.error('[FitnessProvider] Error message:', remoteError.message);
+            } else {
+              console.error('[FitnessProvider] Error details:', JSON.stringify(remoteError, null, 2));
+            }
+          }
         }
       }
     } catch (error) {
@@ -216,58 +281,54 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
         }
       }
 
-      if (!user?.id) {
-        console.warn('[FitnessProvider] saveProfile: No user logged in, saving to state only');
-        setProfile(newProfile);
-        return;
-      }
-
-      console.log('[FitnessProvider] saveProfile: Saving to remote for user:', user.id);
-      try {
-        await remoteFitnessRepo.upsertProfile(user.id, newProfile);
-        console.log('[FitnessProvider] saveProfile: Remote save successful');
-      } catch (error: any) {
-        if (error?.message === 'NETWORK_ERROR') {
-          console.warn('[FitnessProvider] saveProfile: Network error, profile saved to state only');
-        } else {
-          console.error('[FitnessProvider] saveProfile: Remote save failed:', error);
-          throw error;
+      if (user) {
+        console.log('[FitnessProvider] Saving profile to Supabase for user:', user.id);
+        try {
+          await remoteFitnessRepo.upsertProfile(user.id, newProfile);
+        } catch (error: any) {
+          if (error?.message === 'NETWORK_ERROR') {
+            console.warn('[FitnessProvider] Network error saving profile, saved locally only');
+          } else {
+            throw error;
+          }
         }
       }
 
+      await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(newProfile));
       setProfile(newProfile);
-      setHasRemoteProfile(true);
-      console.log('[FitnessProvider] saveProfile: Complete, hasRemoteProfile = true');
+      
+      if (user) {
+        setHasRemoteProfile(true);
+        console.log('[FitnessProvider] Profile saved, hasRemoteProfile = true');
+      }
     } catch (error) {
-      console.error('[FitnessProvider] saveProfile: Error:', error);
+      console.error("Error saving profile:", error);
       throw error;
     }
   };
 
   const addProgressEntry = async (entry: ProgressEntry) => {
     try {
-      if (!user?.id) {
-        console.warn('[FitnessProvider] addProgressEntry: No user logged in, saving to state only');
-        setProgress((prev) => [...prev, entry]);
-        return;
-      }
+      const updated = [...progress, entry];
+      setProgress(updated);
+      await AsyncStorage.setItem(PROGRESS_KEY, JSON.stringify(updated));
+      console.log('[FitnessProvider] Progress entry saved locally, weight:', entry.weight);
 
-      console.log('[FitnessProvider] addProgressEntry: Saving to remote, weight:', entry.weight);
-      try {
-        await remoteFitnessRepo.insertProgressEntry(user.id, entry);
-        console.log('[FitnessProvider] addProgressEntry: Remote save successful');
-      } catch (error: any) {
-        if (error?.message === 'NETWORK_ERROR') {
-          console.warn('[FitnessProvider] addProgressEntry: Network error, saving to state only');
-        } else {
-          console.error('[FitnessProvider] addProgressEntry: Remote save failed:', error);
+      if (user) {
+        console.log('[FitnessProvider] Syncing progress entry to Supabase for user:', user.id);
+        try {
+          await remoteFitnessRepo.insertProgressEntry(user.id, entry);
+          console.log('[FitnessProvider] Progress entry synced to Supabase successfully');
+        } catch (error: any) {
+          if (error?.message === 'NETWORK_ERROR') {
+            console.warn('[FitnessProvider] Network error syncing progress entry, saved locally only');
+          } else {
+            console.error('[FitnessProvider] Error syncing progress entry to Supabase:', error);
+          }
         }
       }
-
-      setProgress((prev) => [...prev, entry]);
-      console.log('[FitnessProvider] addProgressEntry: Complete');
     } catch (error) {
-      console.error('[FitnessProvider] addProgressEntry: Error:', error);
+      console.error("Error adding progress entry:", error);
       throw error;
     }
   };
