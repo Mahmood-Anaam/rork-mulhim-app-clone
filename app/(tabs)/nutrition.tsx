@@ -28,6 +28,7 @@ export default function NutritionScreen() {
   const { 
     profile, 
     getTargetCalories, 
+    getCurrentWeight,
     nutritionAssessment, 
     saveNutritionAssessment,
     currentMealPlan,
@@ -81,7 +82,8 @@ export default function NutritionScreen() {
   const [currentMealType, setCurrentMealType] = useState<"breakfast" | "lunch" | "dinner" | "snacks">("breakfast");
 
   const targetCalories = Math.round(getTargetCalories());
-  const proteinTarget = profile?.weight ? Math.round(profile.weight * 1.8) : 120;
+  const latestWeight = getCurrentWeight();
+  const proteinTarget = latestWeight ? Math.round(latestWeight * 1.8) : 120;
 
   const frequencyLabels: Record<FrequencyOption, string> = {
     daily: t.nutrition.daily,

@@ -335,6 +335,19 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
       await AsyncStorage.setItem(PROGRESS_KEY, JSON.stringify(updated));
       console.log('[FitnessProvider] Progress entry saved locally, weight:', entry.weight);
 
+      if (profile && entry.weight !== profile.weight) {
+        const updatedProfile = { ...profile, weight: entry.weight };
+        setProfile(updatedProfile);
+        await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(updatedProfile));
+        console.log('[FitnessProvider] Profile weight updated to latest:', entry.weight);
+
+        if (user) {
+          remoteFitnessRepo.upsertProfile(user.id, updatedProfile).catch((err) => {
+            console.warn('[FitnessProvider] Error syncing updated profile weight:', err);
+          });
+        }
+      }
+
       if (user) {
         try {
           await remoteFitnessRepo.insertProgressEntry(user.id, entry);
@@ -463,9 +476,20 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
     AsyncStorage.setItem(WEEK_PLAN_KEY, JSON.stringify(updatedPlan)).catch(console.error);
   };
 
+  const getCurrentWeight = (): number => {
+    if (progress.length > 0) {
+      const sorted = [...progress].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      return sorted[0].weight;
+    }
+    return profile?.weight || 0;
+  };
+
   const calculateBMR = (): number => {
     if (!profile) return 0;
-    const { weight, height, age, gender } = profile;
+    const weight = getCurrentWeight() || profile.weight;
+    const { height, age, gender } = profile;
     if (gender === "male") {
       return 10 * weight + 6.25 * height - 5 * age + 5;
     } else {
@@ -1017,6 +1041,7 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
     calculateBMR,
     calculateTDEE,
     getTargetCalories,
+    getCurrentWeight,
     getCurrentStreak,
     hasProfile: user
       ? (remoteProfileChecked ? (hasRemoteProfile || !!profile) : !!profile)
