@@ -66,6 +66,9 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
 
   const loadData = async () => {
     try {
+      setIsLoading(true);
+      setRemoteProfileChecked(false);
+      setHasRemoteProfile(false);
       console.log('[FitnessProvider] Boot sequence started');
 
       console.log('[FitnessProvider] Step 1: Hydrating from local cache');
