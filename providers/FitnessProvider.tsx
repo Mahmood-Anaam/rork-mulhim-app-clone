@@ -335,18 +335,7 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
       await AsyncStorage.setItem(PROGRESS_KEY, JSON.stringify(updated));
       console.log('[FitnessProvider] Progress entry saved locally, weight:', entry.weight);
 
-      if (profile && entry.weight !== profile.weight) {
-        const updatedProfile = { ...profile, weight: entry.weight };
-        setProfile(updatedProfile);
-        await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(updatedProfile));
-        console.log('[FitnessProvider] Profile weight updated to latest:', entry.weight);
-
-        if (user) {
-          remoteFitnessRepo.upsertProfile(user.id, updatedProfile).catch((err) => {
-            console.warn('[FitnessProvider] Error syncing updated profile weight:', err);
-          });
-        }
-      }
+      console.log('[FitnessProvider] Progress entry added. Start weight preserved:', profile?.weight, 'Current weight:', entry.weight);
 
       if (user) {
         try {
