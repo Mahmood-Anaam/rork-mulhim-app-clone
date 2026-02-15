@@ -15,6 +15,23 @@ import type {
   DietPattern,
 } from '@/types/fitness';
 
+async function retryFetch<T>(fn: () => Promise<T>, retries = 2, delay = 1000): Promise<T> {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (e: any) {
+      const isNetworkError = e?.message?.includes('Failed to fetch') || e?.name === 'TypeError';
+      if (isNetworkError && i < retries) {
+        console.log(`[RemoteRepo] Retry ${i + 1}/${retries} after network error`);
+        await new Promise(r => setTimeout(r, delay * (i + 1)));
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw new Error('NETWORK_ERROR');
+}
+
 function wrapNetworkError(error: any): never {
   if (error?.message === 'NETWORK_ERROR') throw error;
   if (
@@ -231,88 +248,111 @@ export const remoteFitnessRepo = {
   async saveWorkoutPlan(userId: string, plan: WeeklyPlan): Promise<string | null> {
     console.log('[RemoteRepo] Saving workout plan for user:', userId);
     try {
-      const { data: existingPlans } = await supabase
-        .from('workout_plans')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('status', 'active');
-
-      if (existingPlans && existingPlans.length > 0) {
-        await supabase
+      return await retryFetch(async () => {
+        const { data: existingPlans } = await supabase
           .from('workout_plans')
-          .update({ status: 'archived' })
+          .select('id')
           .eq('user_id', userId)
           .eq('status', 'active');
-      }
 
-      const { data: planData, error: planError } = await supabase
-        .from('workout_plans')
-        .insert({
-          user_id: userId,
-          name: `Week ${plan.weekNumber}`,
-          description: `${plan.startDate} - ${plan.endDate}`,
-          duration_weeks: 1,
-          generated_by: 'ai',
-          status: 'active',
-          started_at: plan.startDate,
-        })
-        .select()
-        .single();
+        if (existingPlans && existingPlans.length > 0) {
+          await supabase
+            .from('workout_plans')
+            .update({ status: 'archived' })
+            .eq('user_id', userId)
+            .eq('status', 'active');
+        }
 
-      if (planError) handleSupabaseError(planError, 'Error saving workout plan');
-      const planId = planData.id;
-
-      for (let si = 0; si < plan.sessions.length; si++) {
-        const session = plan.sessions[si];
-        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const matched = dayNames.indexOf(session.day) + 1;
-        const dayIndex = matched > 0 ? matched : (si + 1);
-
-        const { data: sessionData, error: sessionError } = await supabase
-          .from('workout_sessions')
+        const { data: planData, error: planError } = await supabase
+          .from('workout_plans')
           .insert({
+            user_id: userId,
+            name: `Week ${plan.weekNumber}`,
+            description: `${plan.startDate} - ${plan.endDate}`,
+            duration_weeks: 1,
+            generated_by: 'ai',
+            status: 'active',
+            started_at: plan.startDate,
+          })
+          .select()
+          .single();
+
+        if (planError) handleSupabaseError(planError, 'Error saving workout plan');
+        const planId = planData.id;
+
+        const usedDayNumbers = new Set<number>();
+        const sessionRows = plan.sessions.map((session, si) => {
+          const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          let dayIndex = dayNames.indexOf(session.day) + 1;
+          if (dayIndex <= 0) dayIndex = si + 1;
+          while (usedDayNumbers.has(dayIndex)) {
+            dayIndex++;
+          }
+          usedDayNumbers.add(dayIndex);
+          return {
             plan_id: planId,
             day_number: dayIndex,
             day_name: session.day,
             session_name: session.name,
             estimated_duration: session.duration,
             rest_note: session.restNote || null,
-          })
-          .select()
-          .single();
+          };
+        });
 
-        if (sessionError) {
-          console.error('[RemoteRepo] Error saving session:', JSON.stringify(sessionError));
-          continue;
+        const { data: sessionsData, error: sessionsError } = await supabase
+          .from('workout_sessions')
+          .insert(sessionRows)
+          .select();
+
+        if (sessionsError) {
+          console.error('[RemoteRepo] Error saving sessions:', JSON.stringify(sessionsError));
         }
 
-        if (session.exercises && session.exercises.length > 0) {
-          const exerciseRows = session.exercises.map((ex, idx) => ({
-            session_id: sessionData.id,
-            name: ex.name,
-            sets: ex.sets,
-            reps: ex.reps,
-            rest_seconds: ex.rest,
-            muscle_group: ex.muscleGroup || null,
-            equipment: ex.equipment || [],
-            assigned_weight: ex.assignedWeight || null,
-            video_url: ex.videoUrl || null,
-            description: ex.description || null,
-            order_index: idx,
-          }));
+        if (sessionsData && sessionsData.length > 0) {
+          const sortedSessions = [...sessionsData].sort((a, b) => a.day_number - b.day_number);
+          const allExerciseRows: any[] = [];
 
-          const { error: exError } = await supabase
-            .from('exercises')
-            .insert(exerciseRows);
+          for (let si = 0; si < plan.sessions.length; si++) {
+            const session = plan.sessions[si];
+            const dbSession = sortedSessions[si];
+            if (!dbSession || !session.exercises || session.exercises.length === 0) continue;
 
-          if (exError) {
-            console.error('[RemoteRepo] Error saving exercises:', exError);
+            for (let idx = 0; idx < session.exercises.length; idx++) {
+              const ex = session.exercises[idx];
+              allExerciseRows.push({
+                session_id: dbSession.id,
+                name: ex.name,
+                sets: ex.sets,
+                reps: ex.reps,
+                rest_seconds: ex.rest,
+                muscle_group: ex.muscleGroup || null,
+                equipment: ex.equipment || [],
+                assigned_weight: ex.assignedWeight || null,
+                video_url: ex.videoUrl || null,
+                description: ex.description || null,
+                order_index: idx,
+              });
+            }
+          }
+
+          if (allExerciseRows.length > 0) {
+            const BATCH_SIZE = 50;
+            for (let i = 0; i < allExerciseRows.length; i += BATCH_SIZE) {
+              const batch = allExerciseRows.slice(i, i + BATCH_SIZE);
+              const { error: exError } = await supabase
+                .from('exercises')
+                .insert(batch);
+
+              if (exError) {
+                console.error('[RemoteRepo] Error saving exercises batch:', exError);
+              }
+            }
           }
         }
-      }
 
-      console.log('[RemoteRepo] Workout plan saved successfully, id:', planId);
-      return planId;
+        console.log('[RemoteRepo] Workout plan saved successfully, id:', planId);
+        return planId;
+      });
     } catch (e) {
       return wrapNetworkError(e);
     }
