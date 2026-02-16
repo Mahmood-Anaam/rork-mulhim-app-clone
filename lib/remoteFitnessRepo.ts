@@ -364,6 +364,17 @@ export const remoteFitnessRepo = {
   async updateSessionCompletion(sessionId: string, completed: boolean, completedAt: string | undefined, completedExercises: string[]) {
     console.log('[RemoteRepo] Updating session completion:', sessionId, 'completed:', completed, 'exercises:', completedExercises.length);
     try {
+      const { data: existing } = await supabase
+        .from('workout_sessions')
+        .select('id')
+        .eq('id', sessionId)
+        .maybeSingle();
+
+      if (!existing) {
+        console.warn('[RemoteRepo] Session not found in Supabase, skipping update for id:', sessionId);
+        return;
+      }
+
       const { error } = await supabase
         .from('workout_sessions')
         .update({
@@ -374,7 +385,12 @@ export const remoteFitnessRepo = {
         .eq('id', sessionId);
 
       if (error) {
-        console.error('[RemoteRepo] Error updating session completion:', error);
+        console.error('[RemoteRepo] Error updating session completion:', JSON.stringify({
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        }));
         return;
       }
       console.log('[RemoteRepo] Session completion updated successfully');
@@ -382,7 +398,7 @@ export const remoteFitnessRepo = {
       if (e?.message === 'NETWORK_ERROR' || e?.message?.includes('Failed to fetch')) {
         console.warn('[RemoteRepo] Network error updating session completion');
       } else {
-        console.error('[RemoteRepo] Error updating session completion:', e);
+        console.error('[RemoteRepo] Error updating session completion:', JSON.stringify(e?.message || e));
       }
     }
   },
