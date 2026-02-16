@@ -32,7 +32,7 @@ import { useLanguage } from "@/providers/LanguageProvider";
 
 export default function ProfileScreen() {
   const { t, setLanguage, language } = useLanguage();
-  const { profile, getTargetCalories, calculateBMR, calculateTDEE, progress, workoutLogs, getCurrentStreak, addProgressEntry } = useFitness();
+  const { profile, getTargetCalories, calculateBMR, calculateTDEE, progress, workoutLogs, getCurrentStreak, getCurrentWeight, addProgressEntry } = useFitness();
   const { signOut } = useAuth();
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [showWeightModal, setShowWeightModal] = useState<boolean>(false);
@@ -66,7 +66,7 @@ export default function ProfileScreen() {
     .replace(/\b\w/g, (l) => l.toUpperCase());
   const levelLabel = profile?.fitnessLevel?.replace(/\b\w/g, (l) => l.toUpperCase());
   
-  const currentWeight = progress.length > 0 ? progress[progress.length - 1].weight : profile?.weight || 0;
+  const currentWeight = getCurrentWeight();
   const startWeight = profile?.weight || 0;
   const weightChange = currentWeight - startWeight;
   const totalWorkouts = workoutLogs.length;
