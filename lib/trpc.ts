@@ -8,14 +8,8 @@ export const trpc = createTRPCReact<AppRouter>();
 
 const getBaseUrl = () => {
   const url = process.env.EXPO_PUBLIC_RORK_API_BASE_URL;
-
-  if (!url) {
-    throw new Error(
-      "Rork did not set EXPO_PUBLIC_RORK_API_BASE_URL, please use support",
-    );
-  }
-
-  return url;
+  // Fall back to localhost for local development when Rork's cloud URL is not set
+  return url || "http://localhost:3000";
 };
 
 export const trpcClient = trpc.createClient({
