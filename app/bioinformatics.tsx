@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react-native";
 import Colors from "@/constants/colors";
-import { useTranslation } from "@/providers/LanguageProvider";
+import { useTranslation } from "@/context/LanguageProvider";
 
 export default function BioinformaticsScreen() {
   const { t } = useTranslation();

@@ -16,8 +16,9 @@ import {
   FavoriteExercise,
   FavoriteMeal,
 } from "@/types/fitness";
-import { useAuth } from "@/providers/AuthProvider";
-import { remoteFitnessRepo } from "@/lib/remoteFitnessRepo";
+import { useAuth } from "@/context/AuthProvider";
+import { remoteFitnessRepo } from "@/services/remoteFitnessRepo";
+import { nutritionService } from "@/services/nutritionService";
 
 const PROFILE_KEY = "@mulhim_profile";
 const PROGRESS_KEY = "@mulhim_progress";
@@ -166,12 +167,13 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
 
       console.log('[FitnessProvider] Step 2: Refreshing from Supabase for user:', user.id);
       try {
-        const [remoteProfile, remoteProgress, remoteLogs, remoteFavExercises, remoteFavMeals] = await Promise.all([
+        const [remoteProfile, remoteProgress, remoteLogs, remoteFavExercises, remoteFavMeals, remoteAssessment] = await Promise.all([
           remoteFitnessRepo.fetchProfile(user.id),
           remoteFitnessRepo.fetchProgressEntries(user.id),
           remoteFitnessRepo.fetchWorkoutLogs(user.id),
           remoteFitnessRepo.fetchFavoriteExercises(user.id),
           remoteFitnessRepo.fetchFavoriteMeals(user.id),
+          remoteFitnessRepo.fetchNutritionAssessment(user.id),
         ]);
 
         setRemoteProfileChecked(true);
@@ -203,6 +205,11 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
           setFavoriteMeals(remoteFavMeals);
           await AsyncStorage.setItem(FAVORITE_MEALS_KEY, JSON.stringify(remoteFavMeals));
           console.log('[FitnessProvider] Remote: Favorite meals refreshed:', remoteFavMeals.length);
+        }
+        if (remoteAssessment) {
+          setNutritionAssessment(remoteAssessment);
+          await AsyncStorage.setItem(NUTRITION_KEY, JSON.stringify(remoteAssessment));
+          console.log('[FitnessProvider] Remote: Nutrition assessment refreshed');
         }
 
         let remoteWorkoutPlan: WeeklyPlan | null = null;
@@ -499,34 +506,19 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
 
   const calculateBMR = (): number => {
     if (!profile) return 0;
-    const weight = getCurrentWeight() || profile.weight;
-    const { height, age, gender } = profile;
-    if (gender === "male") {
-      return 10 * weight + 6.25 * height - 5 * age + 5;
-    } else {
-      return 10 * weight + 6.25 * height - 5 * age - 161;
-    }
+    return nutritionService.calculateBMR(profile, getCurrentWeight());
   };
 
   const calculateTDEE = (): number => {
+    if (!profile) return 0;
     const bmr = calculateBMR();
-    if (!profile) return bmr;
-
-    const activityMultipliers: Record<number, number> = {
-      0: 1.2, 1: 1.2, 2: 1.375, 3: 1.55, 4: 1.55, 5: 1.725, 6: 1.725, 7: 1.9,
-    };
-    const multiplier = activityMultipliers[profile.availableDays] || 1.55;
-    return bmr * multiplier;
+    return nutritionService.calculateTDEE(profile, bmr);
   };
 
   const getTargetCalories = (): number => {
+    if (!profile) return 0;
     const tdee = calculateTDEE();
-    if (!profile) return tdee;
-    switch (profile.goal) {
-      case "fat_loss": return tdee - 500;
-      case "muscle_gain": return tdee + 300;
-      default: return tdee;
-    }
+    return nutritionService.getTargetCalories(profile, tdee);
   };
 
   const getCurrentStreak = (): number => {
@@ -561,6 +553,13 @@ export const [FitnessProvider, useFitness] = createContextHook(() => {
       }
       await AsyncStorage.setItem(NUTRITION_KEY, JSON.stringify(assessment));
       setNutritionAssessment(assessment);
+
+      if (user) {
+        remoteFitnessRepo.upsertNutritionAssessment(user.id, assessment).catch((err) => {
+          console.warn('[FitnessProvider] Error syncing nutrition assessment:', err);
+        });
+      }
+
       if (assessment.completed && profile) {
         const plan = generateNutritionPlan(assessment);
         setNutritionPlan(plan);

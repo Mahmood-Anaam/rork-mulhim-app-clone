@@ -13,8 +13,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
-import { useFitness } from "@/providers/FitnessProvider";
-import { useLanguage } from "@/providers/LanguageProvider";
+import { useFitness } from "@/context/FitnessProvider";
+import { useLanguage } from "@/context/LanguageProvider";
 import {
   FitnessProfile,
   Goal,

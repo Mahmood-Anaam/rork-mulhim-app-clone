@@ -1,5 +1,5 @@
-import { Calendar, CheckCircle2, Circle, Clock, Dumbbell, X, Edit2, ChevronDown, ChevronUp, Star, Plus, Trash2, RefreshCw } from "lucide-react-native";
-import React, { useEffect, useCallback, useState, useRef } from "react";
+import { Calendar, X, Star, Plus, RefreshCw, Dumbbell } from "lucide-react-native";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -11,17 +11,31 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Colors from "@/constants/colors";
-import { useFitness } from "@/providers/FitnessProvider";
-import { useAuth } from "@/providers/AuthProvider";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { WorkoutSession } from "@/types/fitness";
-import { exerciseDatabase, workoutTemplates } from "@/data/exercises";
+import { useFitness } from "@/context/FitnessProvider";
+import { useAuth } from "@/context/AuthProvider";
+import { useLanguage } from "@/context/LanguageProvider";
+import { exerciseDatabase } from "@/data/exercises";
+import { ProgressCard } from "@/components/plan/ProgressCard";
+import { SessionCard } from "@/components/plan/SessionCard";
+import { CalendarModal } from "@/components/plan/CalendarModal";
+import { useWorkoutPlan } from "@/hooks/useWorkoutPlan";
 
 export default function PlanScreen() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   const { t } = useLanguage();
-  const { profile, currentWeekPlan, updateWeekPlan, toggleExerciseCompletion, toggleSessionCompletion, updateExercise, favoriteExercises, removeFavoriteExercise } = useFitness();
+  const {
+    profile,
+    currentWeekPlan,
+    updateWeekPlan,
+    toggleExerciseCompletion,
+    toggleSessionCompletion,
+    updateExercise,
+    favoriteExercises,
+    removeFavoriteExercise
+  } = useFitness();
+  const { generateWeeklyPlan } = useWorkoutPlan();
+
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
   const [editingExercise, setEditingExercise] = useState<{ sessionId: string; exercise: any } | null>(null);
   const [editForm, setEditForm] = useState<{ sets: string; reps: string; rest: string; weight: string }>({ sets: "", reps: "", rest: "", weight: "" });
@@ -32,287 +46,6 @@ export default function PlanScreen() {
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState<string | null>(null);
   const [showEditOptions, setShowEditOptions] = useState<string | null>(null);
   const hasInitializedExpanded = useRef<boolean>(false);
-
-  const generateWeeklyPlan = useCallback(() => {
-    if (!profile) return;
-
-    const today = new Date();
-    const startDate = new Date(today);
-    startDate.setDate(today.getDate() - today.getDay());
-
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 6);
-
-    const selectWorkoutTemplate = () => {
-      if (profile.activityLevel === "none") {
-        return workoutTemplates.fullBody;
-      }
-
-      if (profile.availableDays >= 2 && profile.availableDays <= 3) {
-        return workoutTemplates.fullBody;
-      }
-
-      if (profile.availableDays === 4) {
-        return workoutTemplates.upperLower;
-      }
-
-      if (profile.availableDays >= 5 && profile.availableDays <= 6) {
-        if (profile.fitnessLevel === "advanced" && profile.activityLevel === "high") {
-          return workoutTemplates.pushPullLegs;
-        }
-        return workoutTemplates.upperLower;
-      }
-
-      if (profile.availableDays === 7) {
-        if (profile.fitnessLevel === "advanced" && profile.activityLevel === "high") {
-          return workoutTemplates.pushPullLegs;
-        }
-        return workoutTemplates.upperLower;
-      }
-
-      return workoutTemplates.fullBody;
-    };
-
-    const template = selectWorkoutTemplate();
-
-    const updateVideoUrl = (exercise: typeof exerciseDatabase[string][number]) => {
-      const ex = { ...exercise };
-      if (profile.trainingLocation === "home" || profile.trainingLocation === "minimal_equipment") {
-        const videoMapping: Record<string, string> = {
-          "pushups": "https://www.youtube.com/watch?v=IODxDxX7oi4",
-          "wide-pushups": "https://www.youtube.com/watch?v=KYIPC75rSQg",
-          "diamond-pushups": "https://www.youtube.com/watch?v=J0DnG1_S92I",
-          "decline-pushups": "https://www.youtube.com/watch?v=SKPab2YC8BE",
-          "bodyweight-squats": "https://www.youtube.com/watch?v=aclHkVaku9U",
-          "bulgarian-split-squat": "https://www.youtube.com/watch?v=2C-uNgKwPLE",
-          "jump-squats": "https://www.youtube.com/watch?v=A-cFYWvaHr0",
-          "wall-sit": "https://www.youtube.com/watch?v=y-wV4Venusw",
-          "glute-bridges": "https://www.youtube.com/watch?v=wPM8icPu6H8",
-          "single-leg-deadlift": "https://www.youtube.com/watch?v=Zfr6wizR8rs",
-          "pullups": "https://www.youtube.com/watch?v=eGo4IYlbE5g",
-          "chin-ups": "https://www.youtube.com/watch?v=brhWuCQ17FI",
-          "inverted-rows": "https://www.youtube.com/watch?v=hXTc1mDnZCw",
-          "superman": "https://www.youtube.com/watch?v=cc6UVRS7PW4",
-          "reverse-snow-angels": "https://www.youtube.com/watch?v=4Z3BM3JnZuo",
-          "pike-pushups": "https://www.youtube.com/watch?v=x4YNjHHyqn8",
-          "handstand-pushups": "https://www.youtube.com/watch?v=tQhrk6WMcKw",
-          "bench-dips": "https://www.youtube.com/watch?v=0326dy_-CzM",
-          "close-grip-pushups": "https://www.youtube.com/watch?v=bTsCz0kCNJI",
-          "dumbbell-rows": "https://www.youtube.com/watch?v=pYcpY20QaE8",
-          "goblet-squats": "https://www.youtube.com/watch?v=MeIiIdhvXT4",
-          "lunges": "https://www.youtube.com/watch?v=QOVaHwm-Q6U",
-          "dumbbell-press": "https://www.youtube.com/watch?v=qEwKCR5JCog",
-          "lateral-raises": "https://www.youtube.com/watch?v=3VcKaXpzqRo",
-          "bicep-curls": "https://www.youtube.com/watch?v=ykJmrZ5v0Oo",
-          "tricep-dips": "https://www.youtube.com/watch?v=2z8JmcrW-As",
-        };
-        if (videoMapping[ex.id]) {
-          ex.videoUrl = videoMapping[ex.id];
-        }
-      }
-      return ex;
-    };
-
-    const filterExercisesByLocation = (exercises: typeof exerciseDatabase[string]) => {
-      if (profile.trainingLocation === "home") {
-        return exercises.filter((ex) => ex.equipment.length === 0);
-      } else if (profile.trainingLocation === "minimal_equipment") {
-        return exercises.filter((ex) => {
-          const allowedEquipment = ["dumbbells", "resistance-bands", "pullup-bar"];
-          return ex.equipment.length === 0 || ex.equipment.every(eq => allowedEquipment.includes(eq));
-        });
-      }
-      return exercises;
-    };
-
-    const filterExercisesByInjuries = (exercises: typeof exerciseDatabase[string]) => {
-      if (!profile.injuries) return exercises;
-      
-      const injuries = profile.injuries.toLowerCase();
-      return exercises.filter((ex) => {
-        if (injuries.includes("knee") && (ex.id.includes("squat") || ex.id.includes("lunge"))) {
-          return false;
-        }
-        if (injuries.includes("back") && (ex.id.includes("deadlift") || ex.id.includes("row"))) {
-          return false;
-        }
-        if (injuries.includes("shoulder") && (ex.id.includes("press") || ex.id.includes("raise"))) {
-          return false;
-        }
-        return true;
-      });
-    };
-
-    const adjustExerciseByGoal = (exercise: typeof exerciseDatabase[string][number]) => {
-      const adjusted = { ...exercise };
-      
-      switch (profile.goal) {
-        case "fat_loss":
-          adjusted.sets = Math.min(exercise.sets + 1, 5);
-          adjusted.reps = exercise.reps.includes("-") 
-            ? `${parseInt(exercise.reps.split("-")[0]) + 2}-${parseInt(exercise.reps.split("-")[1]) + 5}`
-            : exercise.reps;
-          adjusted.rest = Math.max(exercise.rest - 15, 45);
-          break;
-        case "muscle_gain":
-          adjusted.sets = exercise.sets;
-          adjusted.reps = exercise.reps.includes("-")
-            ? `${Math.max(parseInt(exercise.reps.split("-")[0]) - 2, 6)}-${Math.max(parseInt(exercise.reps.split("-")[1]) - 2, 8)}`
-            : exercise.reps;
-          adjusted.rest = exercise.rest + 15;
-          break;
-        case "general_fitness":
-          adjusted.sets = exercise.sets;
-          adjusted.reps = exercise.reps;
-          adjusted.rest = exercise.rest;
-          break;
-      }
-      
-      if (adjusted.recommendedWeight) {
-        const genderWeights = adjusted.recommendedWeight[profile.gender];
-        adjusted.assignedWeight = genderWeights[profile.fitnessLevel];
-      }
-      
-      return adjusted;
-    };
-
-    const daysOfWeek = [
-      t.days.Monday,
-      t.days.Tuesday,
-      t.days.Wednesday,
-      t.days.Thursday,
-      t.days.Friday,
-      t.days.Saturday,
-      t.days.Sunday,
-    ];
-    const shouldAddRestNote = (dayIndex: number, totalDays: number, fitnessLevel: string, goal: string, activityLevel: string) => {
-      if (activityLevel === "high") return null;
-      
-      if (fitnessLevel === "beginner" && totalDays >= 6) {
-        if (dayIndex === 2 || dayIndex === 5) return "⚠️ يُنصح بأخذ استراحة اليوم - الجسم يحتاج للتعافي";
-      }
-      if (activityLevel === "none" && totalDays >= 5) {
-        if (dayIndex % 2 === 0 && dayIndex > 0) return "💡 يمكنك أخذ استراحة اليوم وتركيز الأيام الأخرى";
-      }
-      if (goal === "fat_loss" && totalDays === 7 && fitnessLevel === "beginner") {
-        if (dayIndex === 3) return "🔥 استراحة نشطة: مشي خفيف أو يوجا";
-      }
-      return null;
-    };
-
-    const generateWarmupExercises = () => [
-      {
-        id: "warmup-cardio",
-        name: "General Warm-Up",
-        sets: 1,
-        reps: "5 min",
-        rest: 0,
-        muscleGroup: "Warm-up",
-        equipment: [],
-        description: "مشي خفيف أو قفز بالحبل أو تمارين هوائية خفيفة",
-        assignedWeight: "Body weight",
-        videoUrl: "https://youtu.be/-p0PA9Zt8zk?si=T8-h3y9EEMzK58a8"
-      },
-      {
-        id: "warmup-mobility",
-        name: "Dynamic Mobility",
-        sets: 1,
-        reps: "5 min",
-        rest: 0,
-        muscleGroup: "Warm-up",
-        equipment: [],
-        description: "Hip openers, Arm circles, Leg swings",
-        assignedWeight: "Body weight",
-        videoUrl: "https://www.youtube.com/watch?v=_kGESn8ArrU"
-      }
-    ];
-
-    const generateCooldownExercises = () => [
-      {
-        id: "cooldown-stretch",
-        name: "Static Stretching",
-        sets: 1,
-        reps: "5 min",
-        rest: 0,
-        muscleGroup: "Cool-down",
-        equipment: [],
-        description: "تمدد ثابت لجميع العضلات المستخدمة",
-        assignedWeight: "Body weight",
-        videoUrl: "https://www.youtube.com/watch?v=g_tea8ZNk5A"
-      },
-      {
-        id: "cooldown-breathing",
-        name: "Breathing & Recovery",
-        sets: 1,
-        reps: "3 min",
-        rest: 0,
-        muscleGroup: "Cool-down",
-        equipment: [],
-        description: "تنفس عميق وتمارين استرخاء",
-        assignedWeight: "Body weight",
-        videoUrl: "https://youtu.be/lEzaFx8k7Ew?si=VsFBnd5yvdB84mic"
-      }
-    ];
-
-    const templateCycle = [];
-    for (let i = 0; i < profile.availableDays; i++) {
-      templateCycle.push(template[i % template.length]);
-    }
-
-    const shuffleArray = <T,>(array: T[]): T[] => {
-      const shuffled = [...array];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      return shuffled;
-    };
-
-    const sessions: WorkoutSession[] = templateCycle.map((workout, index) => {
-      const warmupExercises = generateWarmupExercises();
-      const cooldownExercises = generateCooldownExercises();
-      
-      const mainExercises = workout.muscleGroups.flatMap((group: string) => {
-        let groupExercises = exerciseDatabase[group] || [];
-        
-        groupExercises = filterExercisesByLocation(groupExercises);
-        groupExercises = filterExercisesByInjuries(groupExercises);
-        
-        if (groupExercises.length === 0) {
-          console.warn(`No exercises found for ${group} with current filters`);
-          return [];
-        }
-        
-        const exerciseCount = profile.fitnessLevel === "beginner" ? 2 : 
-                             profile.fitnessLevel === "intermediate" ? 3 : 4;
-        
-        const shuffledExercises = shuffleArray(groupExercises);
-        const selectedExercises = shuffledExercises.slice(0, Math.min(exerciseCount, shuffledExercises.length));
-        
-        return selectedExercises.map(ex => adjustExerciseByGoal(updateVideoUrl(ex)));
-      });
-
-      const allExercises = [...warmupExercises, ...mainExercises, ...cooldownExercises];
-      const restNote = shouldAddRestNote(index, profile.availableDays, profile.fitnessLevel, profile.goal, profile.activityLevel);
-
-      return {
-        id: `session-${index}`,
-        day: daysOfWeek[index],
-        name: workout.name,
-        exercises: allExercises,
-        duration: profile.sessionDuration,
-        completed: false,
-        restNote: restNote || undefined,
-      };
-    });
-
-    updateWeekPlan({
-      weekNumber: 1,
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      sessions,
-    });
-  }, [profile, updateWeekPlan, t.days]);
 
   useEffect(() => {
     if (profile && !currentWeekPlan) {
@@ -353,7 +86,6 @@ export default function PlanScreen() {
 
   const completedSessions = currentWeekPlan.sessions.filter((s) => s.completed).length;
   const totalSessions = currentWeekPlan.sessions.length;
-  const progressPercentage = (completedSessions / totalSessions) * 100;
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -369,20 +101,7 @@ export default function PlanScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.progressCard}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressTitle}>{t.plan.weekProgress}</Text>
-              <Text style={styles.progressValue}>
-                {completedSessions}/{totalSessions}
-              </Text>
-            </View>
-            <View style={styles.progressBarContainer}>
-              <View style={[styles.progressBar, { width: `${progressPercentage}%` }]} />
-            </View>
-            <Text style={styles.progressLabel}>
-              {totalSessions - completedSessions} {t.plan.workoutsRemaining}
-            </Text>
-          </View>
+          <ProgressCard completedSessions={completedSessions} totalSessions={totalSessions} />
         </View>
 
         {favoriteExercises.length > 0 && (
@@ -393,11 +112,7 @@ export default function PlanScreen() {
                 <Text style={styles.favoritesTitle}>{t.plan.favoriteExercises}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowFavorites(!showFavorites)}>
-                {showFavorites ? (
-                  <ChevronUp size={20} color={Colors.textSecondary} />
-                ) : (
-                  <ChevronDown size={20} color={Colors.textSecondary} />
-                )}
+                <RefreshCw size={20} color={Colors.textSecondary} style={{ transform: [{ rotate: showFavorites ? '180deg' : '0deg' }] }} />
               </TouchableOpacity>
             </View>
             
@@ -437,187 +152,56 @@ export default function PlanScreen() {
         )}
 
         <View style={styles.sessionsContainer}>
-          {currentWeekPlan.sessions.map((session) => {
-            const isExpanded = expandedSessions.has(session.id);
-            return (
-            <View key={session.id} style={styles.sessionCard}>
-              <TouchableOpacity onPress={() => toggleSessionExpanded(session.id)}>
-                <View style={styles.sessionHeader}>
-                  <View style={styles.sessionHeaderLeft}>
-                    <TouchableOpacity onPress={(e) => {
-                      e.stopPropagation();
-                      toggleSessionCompletion(session.id);
-                    }}>
-                      {session.completed ? (
-                        <CheckCircle2 size={24} color={Colors.success} />
-                      ) : (
-                        <Circle size={24} color={Colors.textLight} />
-                      )}
-                    </TouchableOpacity>
-                    <View>
-                      <Text style={styles.sessionDay}>{session.day}</Text>
-                      <Text style={styles.sessionName}>{session.name}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.sessionHeaderRight}>
-                    <View style={styles.durationBadge}>
-                      <Clock size={14} color={Colors.textSecondary} />
-                      <Text style={styles.durationText}>{session.duration}min</Text>
-                    </View>
-                    {isExpanded ? (
-                      <ChevronUp size={20} color={Colors.textSecondary} />
-                    ) : (
-                      <ChevronDown size={20} color={Colors.textSecondary} />
-                    )}
-                  </View>
-                </View>
-              </TouchableOpacity>
-
-              {isExpanded && (
-                <>
-                  {session.restNote && (
-                    <View style={styles.restNoteContainer}>
-                      <Text style={styles.restNoteText}>{session.restNote}</Text>
-                    </View>
-                  )}
-
-                  <View style={styles.exercisesContainer}>
-                {session.exercises.map((exercise, index) => {
-                  const isExerciseCompleted = session.completedExercises?.includes(exercise.id) || false;
-                  const isWarmupOrCooldown = exercise.muscleGroup === "Warm-up" || exercise.muscleGroup === "Cool-down";
-                  return (
-                    <View key={exercise.id} style={styles.exerciseRow}>
-                      <TouchableOpacity onPress={() => toggleExerciseCompletion(session.id, exercise.id)}>
-                        {isExerciseCompleted ? (
-                          <CheckCircle2 size={20} color={Colors.success} />
-                        ) : (
-                          <Circle size={20} color={Colors.textLight} />
-                        )}
-                      </TouchableOpacity>
-                      <View style={styles.exerciseInfo}>
-                        <View style={styles.exerciseNameRow}>
-                          <Text style={[styles.exerciseName, isExerciseCompleted && styles.exerciseCompleted]}>{exercise.name}</Text>
-                          {showEditOptions === session.id && (
-                            <View style={styles.exerciseActions}>
-                              <TouchableOpacity 
-                                onPress={() => {
-                                  setEditingExercise({ sessionId: session.id, exercise });
-                                  const weight = exercise.assignedWeight && exercise.assignedWeight.toLowerCase().includes('body')
-                                    ? "-"
-                                    : exercise.assignedWeight 
-                                    ? exercise.assignedWeight 
-                                    : (exercise.equipment.length === 0 ? "-" : "");
-                                  setEditForm({
-                                    sets: exercise.sets.toString(),
-                                    reps: exercise.reps,
-                                    rest: exercise.rest.toString(),
-                                    weight: weight
-                                  });
-                                }}
-                                style={styles.editButton}
-                              >
-                                <Edit2 size={16} color={Colors.primary} />
-                              </TouchableOpacity>
-                              {!isWarmupOrCooldown && (
-                                <TouchableOpacity 
-                                  onPress={() => {
-                                    if (currentWeekPlan) {
-                                      const updatedSessions = currentWeekPlan.sessions.map((s) => {
-                                        if (s.id === session.id) {
-                                          return {
-                                            ...s,
-                                            exercises: s.exercises.filter((e) => e.id !== exercise.id),
-                                          };
-                                        }
-                                        return s;
-                                      });
-                                      updateWeekPlan({
-                                        ...currentWeekPlan,
-                                        sessions: updatedSessions,
-                                      });
-                                    }
-                                  }}
-                                  style={styles.deleteButton}
-                                >
-                                  <Trash2 size={16} color={Colors.danger} />
-                                </TouchableOpacity>
-                              )}
-                            </View>
-                          )}
-                        </View>
-                        <Text style={styles.exerciseDetails}>
-                          {exercise.sets} sets × {exercise.reps} reps · {exercise.rest}s rest · {exercise.assignedWeight && exercise.assignedWeight.toLowerCase().includes('body') ? "-" : exercise.assignedWeight ? exercise.assignedWeight : (exercise.equipment.length === 0 ? "-" : "N/A")}
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-
-              {showEditOptions === session.id && (
-                <View style={styles.editOptionsContainer}>
-                  <TouchableOpacity
-                    style={styles.inlineEditOptionButton}
-                    onPress={() => {
-                      setShowAddExercise(session.id);
-                    }}
-                  >
-                    <Plus size={20} color={Colors.primary} />
-                    <View style={styles.inlineEditOptionTextContainer}>
-                      <Text style={styles.inlineEditOptionTitle}>{t.plan.addExercise}</Text>
-                    </View>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.inlineEditOptionButton}
-                    onPress={() => {
-                      setShowRegenerateConfirm(session.id);
-                    }}
-                  >
-                    <RefreshCw size={20} color={Colors.primary} />
-                    <View style={styles.inlineEditOptionTextContainer}>
-                      <Text style={styles.inlineEditOptionTitle}>{t.plan.regenerateSession}</Text>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              <TouchableOpacity 
-                style={styles.editSessionButton}
-                onPress={() => {
-                  if (showEditOptions === session.id) {
-                    setShowEditOptions(null);
-                  } else {
-                    setShowEditOptions(session.id);
-                  }
-                }}
-              >
-                <Edit2 size={18} color={Colors.primary} />
-                <Text style={styles.editSessionButtonText}>
-                  {showEditOptions === session.id ? t.plan.hideEdits : t.plan.editSession}
-                </Text>
-              </TouchableOpacity>
-
-              {!session.completed && (
-                <TouchableOpacity 
-                  style={styles.startButton}
-                  onPress={() => {
-                    if (!isAuthenticated) {
-                      router.push("/auth/login" as any);
-                    } else {
-                      router.push(`/workout-details?sessionId=${session.id}` as any);
+          {currentWeekPlan.sessions.map((session) => (
+            <SessionCard
+              key={session.id}
+              session={session}
+              isExpanded={expandedSessions.has(session.id)}
+              showEditOptions={showEditOptions === session.id}
+              onToggleExpanded={() => toggleSessionExpanded(session.id)}
+              onToggleCompletion={() => toggleSessionCompletion(session.id)}
+              onToggleExerciseCompletion={(exId) => toggleExerciseCompletion(session.id, exId)}
+              onEditExercise={(ex) => {
+                setEditingExercise({ sessionId: session.id, exercise: ex });
+                const weight = ex.assignedWeight && ex.assignedWeight.toLowerCase().includes('body')
+                  ? "-"
+                  : ex.assignedWeight
+                  ? ex.assignedWeight
+                  : (ex.equipment.length === 0 ? "-" : "");
+                setEditForm({
+                  sets: ex.sets.toString(),
+                  reps: ex.reps,
+                  rest: ex.rest.toString(),
+                  weight: weight
+                });
+              }}
+              onDeleteExercise={(exId) => {
+                if (currentWeekPlan) {
+                  const updatedSessions = currentWeekPlan.sessions.map((s) => {
+                    if (s.id === session.id) {
+                      return {
+                        ...s,
+                        exercises: s.exercises.filter((e) => e.id !== exId),
+                      };
                     }
-                  }}
-                >
-                  <Dumbbell size={18} color={Colors.background} />
-                  <Text style={styles.startButtonText}>{isAuthenticated ? t.plan.startWorkout : t.plan.loginToStart}</Text>
-                </TouchableOpacity>
-              )}
-                </>
-              )}
-            </View>
-            );
-          })}
+                    return s;
+                  });
+                  updateWeekPlan({ ...currentWeekPlan, sessions: updatedSessions });
+                }
+              }}
+              onToggleEditOptions={() => setShowEditOptions(showEditOptions === session.id ? null : session.id)}
+              onStartWorkout={() => {
+                if (!isAuthenticated) {
+                  router.push("/auth/login" as any);
+                } else {
+                  router.push(`/workout-details?sessionId=${session.id}` as any);
+                }
+              }}
+              onAddExercise={() => setShowAddExercise(session.id)}
+              onRegenerateSession={() => setShowRegenerateConfirm(session.id)}
+              isAuthenticated={isAuthenticated}
+            />
+          ))}
         </View>
 
         <View style={styles.tipsCard}>
@@ -631,56 +215,13 @@ export default function PlanScreen() {
         </View>
       </ScrollView>
 
-      <Modal
+      <CalendarModal
         visible={showCalendar}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowCalendar(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t.plan.weekCalendar}</Text>
-              <TouchableOpacity onPress={() => setShowCalendar(false)} style={styles.closeButton}>
-                <X size={24} color={Colors.text} />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.calendarGrid}>
-              {currentWeekPlan.sessions.map((session) => {
-                const completedCount = session.completedExercises?.length || 0;
-                const totalCount = session.exercises.length;
-                const progress = (completedCount / totalCount) * 100;
-                
-                return (
-                  <View key={session.id} style={styles.calendarDay}>
-                    <View style={styles.calendarDayHeader}>
-                      <Text style={styles.calendarDayName}>{session.day.slice(0, 3)}</Text>
-                      {session.completed && (
-                        <CheckCircle2 size={16} color={Colors.success} />
-                      )}
-                    </View>
-                    <Text style={styles.calendarWorkoutName}>{session.name}</Text>
-                    <View style={styles.calendarProgressBar}>
-                      <View style={[styles.calendarProgress, { width: `${progress}%` }]} />
-                    </View>
-                    <Text style={styles.calendarProgressText}>
-                      {completedCount}/{totalCount}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-            
-            <View style={styles.calendarStats}>
-              <View style={styles.statItem}>
-                <Text style={styles.statLabel}>{t.plan.weekNumber} {currentWeekPlan.weekNumber}</Text>
-                <Text style={styles.statValue}>{completedSessions}/{totalSessions} {t.plan.completed}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setShowCalendar(false)}
+        currentWeekPlan={currentWeekPlan}
+        completedSessions={completedSessions}
+        totalSessions={totalSessions}
+      />
 
       <Modal
         visible={!!editingExercise}

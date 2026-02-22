@@ -10,7 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Globe } from "lucide-react-native";
 import Colors from "@/constants/colors";
-import { useLanguage } from "@/providers/LanguageProvider";
+import { useLanguage } from "@/context/LanguageProvider";
 import { Language } from "@/constants/translations";
 
 export default function WelcomeScreen() {

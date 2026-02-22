@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase } from '@/api/supabase';
 import type {
   FitnessProfile,
   ProgressEntry,
@@ -466,6 +466,42 @@ export const remoteFitnessRepo = {
 
       console.log('[RemoteRepo] Workout plan fetched with', weeklyPlan.sessions.length, 'sessions');
       return weeklyPlan;
+    } catch (e) {
+      return wrapNetworkError(e);
+    }
+  },
+
+  async upsertNutritionAssessment(userId: string, assessment: NutritionAssessment) {
+    console.log('[RemoteRepo] Upserting nutrition assessment for user:', userId);
+    try {
+      const { data, error } = await supabase
+        .from('nutrition_assessments')
+        .upsert({
+          user_id: userId,
+          data: assessment,
+        }, { onConflict: 'user_id' })
+        .select()
+        .single();
+
+      if (error) handleSupabaseError(error, 'Error upserting nutrition assessment');
+      console.log('[RemoteRepo] Nutrition assessment upserted successfully');
+      return data;
+    } catch (e) {
+      return wrapNetworkError(e);
+    }
+  },
+
+  async fetchNutritionAssessment(userId: string): Promise<NutritionAssessment | null> {
+    console.log('[RemoteRepo] Fetching nutrition assessment for user:', userId);
+    try {
+      const { data, error } = await supabase
+        .from('nutrition_assessments')
+        .select('data')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) handleSupabaseError(error, 'Error fetching nutrition assessment');
+      return data ? (data.data as NutritionAssessment) : null;
     } catch (e) {
       return wrapNetworkError(e);
     }

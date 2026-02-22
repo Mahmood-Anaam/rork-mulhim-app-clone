@@ -11,8 +11,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Colors from "@/constants/colors";
-import { useFitness } from "@/providers/FitnessProvider";
-import { useTranslation } from "@/providers/LanguageProvider";
+import { useFitness } from "@/context/FitnessProvider";
+import { useTranslation } from "@/context/LanguageProvider";
 
 export default function WorkoutDetailsScreen() {
   const router = useRouter();

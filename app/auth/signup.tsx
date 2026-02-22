@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useState } from "react";
-import { useAuth } from "@/providers/AuthProvider";
+import { useAuth } from "@/context/AuthProvider";
 import { useRouter } from "expo-router";
 import Colors from "@/constants/colors";
 import { SafeAreaView } from "react-native-safe-area-context";

@@ -15,8 +15,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Colors from "@/constants/colors";
-import { useFitness } from "@/providers/FitnessProvider";
-import { useTranslation } from "@/providers/LanguageProvider";
+import { useFitness } from "@/context/FitnessProvider";
+import { useTranslation } from "@/context/LanguageProvider";
 import { saudiMeals } from "@/data/meals";
 import { MealStructure, MealSuggestion, WeeklyMealPlan, DailyMealPlan, GroceryList, GroceryItem } from "@/types/fitness";
 
@@ -26,7 +26,6 @@ export default function NutritionScreen() {
   const router = useRouter();
   const { t, language } = useTranslation();
   const { 
-    profile, 
     getTargetCalories, 
     getCurrentWeight,
     nutritionAssessment, 

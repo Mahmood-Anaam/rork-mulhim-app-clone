@@ -26,13 +26,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import Colors from "@/constants/colors";
-import { useFitness } from "@/providers/FitnessProvider";
-import { useAuth } from "@/providers/AuthProvider";
-import { useLanguage } from "@/providers/LanguageProvider";
+import { useFitness } from "@/context/FitnessProvider";
+import { useAuth } from "@/context/AuthProvider";
+import { useLanguage } from "@/context/LanguageProvider";
 
 export default function ProfileScreen() {
   const { t, setLanguage, language } = useLanguage();
-  const { profile, getTargetCalories, calculateBMR, calculateTDEE, progress, workoutLogs, getCurrentStreak, getCurrentWeight, addProgressEntry } = useFitness();
+  const { profile, getTargetCalories, calculateBMR, calculateTDEE, workoutLogs, getCurrentStreak, getCurrentWeight, addProgressEntry } = useFitness();
   const { signOut } = useAuth();
   const [showEditModal, setShowEditModal] = useState<boolean>(false);
   const [showWeightModal, setShowWeightModal] = useState<boolean>(false);
