@@ -20,3 +20,4 @@ This document logs all major architectural changes and justifications during the
 - **`src/services/`**: Created `openAIService.ts`, refined `remoteFitnessRepo.ts`.
 - **`src/screens/`**: Created view components for all application routes.
 - **`src/components/`**: Created `Button.tsx`, `Input.tsx`, `Card.tsx`, `LoadingView.tsx`, `ErrorView.tsx`.
+| 9 | Enhanced Error Reporting | Improved visibility of API errors in the Coach screen to assist in debugging authentication issues. |

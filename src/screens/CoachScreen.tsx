@@ -329,7 +329,7 @@ export const CoachScreen = () => {
 
           {error && (
             <View style={styles.errorMessage}>
-              <Text style={styles.errorText}>{t.coach.errorOccurred}</Text>
+              <Text style={styles.errorText}>{error || t.coach.errorOccurred}</Text>
             </View>
           )}
         </ScrollView>

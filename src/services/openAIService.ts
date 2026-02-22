@@ -12,14 +12,23 @@ export const openAIService = {
     }
 
     try {
+      const cleanKey = CONFIG.OPENAI_API_KEY.trim().replace(/^['"]|['"]$/g, '');
+      console.log('[OpenAIService] Sending request to OpenAI...', {
+        model: 'gpt-4o',
+        messageCount: messages.length,
+        hasKey: !!cleanKey,
+        keyStart: cleanKey.substring(0, 7),
+        keyEnd: cleanKey.substring(cleanKey.length - 4)
+      });
+
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${CONFIG.OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${cleanKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model: 'gpt-4o-mini',
           messages,
           temperature: 0.7,
         }),
@@ -27,7 +36,8 @@ export const openAIService = {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error?.message || 'OpenAI API error');
+        console.error('[OpenAIService] OpenAI Error response:', errorData);
+        throw new Error(errorData.error?.message || `OpenAI API error (${response.status})`);
       }
 
       const data = await response.json();
