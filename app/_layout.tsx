@@ -3,10 +3,10 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { View } from "react-native";
-import { FitnessProvider } from "@/providers/FitnessProvider";
-import { AuthProvider } from "@/providers/AuthProvider";
-import { LanguageProvider } from "@/providers/LanguageProvider";
-import { trpc, trpcClient } from "@/lib/trpc";
+import { FitnessProvider } from "@/src/providers/FitnessProvider";
+import { AuthProvider } from "@/src/providers/AuthProvider";
+import { LanguageProvider } from "@/src/providers/LanguageProvider";
+import { trpc, trpcClient } from "@/src/services/trpc";
 
 const originalError = console.error;
 console.error = (...args: any[]) => {

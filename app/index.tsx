@@ -1,9 +1,9 @@
 import { Redirect } from "expo-router";
-import { useFitness } from "@/providers/FitnessProvider";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { useAuth } from "@/providers/AuthProvider";
+import { useFitness } from "@/src/providers/FitnessProvider";
+import { useLanguage } from "@/src/providers/LanguageProvider";
+import { useAuth } from "@/src/providers/AuthProvider";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
-import Colors from "@/constants/colors";
+import Colors from "@/src/constants/colors";
 
 export default function Index() {
   const { hasProfile, isLoading: profileLoading, profile } = useFitness();

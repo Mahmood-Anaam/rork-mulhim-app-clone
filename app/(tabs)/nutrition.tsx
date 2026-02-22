@@ -14,11 +14,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import Colors from "@/constants/colors";
-import { useFitness } from "@/providers/FitnessProvider";
-import { useTranslation } from "@/providers/LanguageProvider";
-import { saudiMeals } from "@/data/meals";
-import { MealStructure, MealSuggestion, WeeklyMealPlan, DailyMealPlan, GroceryList, GroceryItem } from "@/types/fitness";
+import Colors from "@/src/constants/colors";
+import { useFitness } from "@/src/providers/FitnessProvider";
+import { useTranslation } from "@/src/providers/LanguageProvider";
+import { saudiMeals } from "@/src/data/meals";
+import { MealStructure, MealSuggestion, WeeklyMealPlan, DailyMealPlan, GroceryList, GroceryItem } from "@/src/types/fitness";
 
 type FrequencyOption = "daily" | "3-5_weekly" | "1-2_weekly" | "rarely" | "never";
 

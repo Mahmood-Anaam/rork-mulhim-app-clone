@@ -25,10 +25,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import Colors from "@/constants/colors";
-import { useFitness } from "@/providers/FitnessProvider";
-import { useAuth } from "@/providers/AuthProvider";
-import { useLanguage } from "@/providers/LanguageProvider";
+import Colors from "@/src/constants/colors";
+import { useFitness } from "@/src/providers/FitnessProvider";
+import { useAuth } from "@/src/providers/AuthProvider";
+import { useLanguage } from "@/src/providers/LanguageProvider";
 
 export default function ProfileScreen() {
   const { t, setLanguage, language } = useLanguage();

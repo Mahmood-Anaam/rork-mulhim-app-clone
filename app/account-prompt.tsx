@@ -9,8 +9,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { UserCircle, LogIn, ArrowRight } from "lucide-react-native";
-import Colors from "@/constants/colors";
-import { useLanguage } from "@/providers/LanguageProvider";
+import Colors from "@/src/constants/colors";
+import { useLanguage } from "@/src/providers/LanguageProvider";
 
 export default function AccountPromptScreen() {
   const router = useRouter();

@@ -11,10 +11,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import Colors from "@/constants/colors";
-import { MealSuggestion } from "@/types/fitness";
-import { useFitness } from "@/providers/FitnessProvider";
-import { useTranslation } from "@/providers/LanguageProvider";
+import Colors from "@/src/constants/colors";
+import { MealSuggestion } from "@/src/types/fitness";
+import { useFitness } from "@/src/providers/FitnessProvider";
+import { useTranslation } from "@/src/providers/LanguageProvider";
 
 type MeasurementUnit = "weight" | "volume";
 

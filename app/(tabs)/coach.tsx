@@ -14,9 +14,9 @@ import {
   Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Colors from "@/constants/colors";
-import { useFitness } from "@/providers/FitnessProvider";
-import { useLanguage } from "@/providers/LanguageProvider";
+import Colors from "@/src/constants/colors";
+import { useFitness } from "@/src/providers/FitnessProvider";
+import { useLanguage } from "@/src/providers/LanguageProvider";
 import { useRorkAgent, createRorkTool } from "@rork-ai/toolkit-sdk";
 import { z } from "zod";
 

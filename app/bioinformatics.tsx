@@ -21,8 +21,8 @@ import {
   ArrowLeft,
   X,
 } from "lucide-react-native";
-import Colors from "@/constants/colors";
-import { useTranslation } from "@/providers/LanguageProvider";
+import Colors from "@/src/constants/colors";
+import { useTranslation } from "@/src/providers/LanguageProvider";
 
 export default function BioinformaticsScreen() {
   const { t } = useTranslation();

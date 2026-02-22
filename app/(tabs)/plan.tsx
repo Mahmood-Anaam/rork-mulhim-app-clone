@@ -10,12 +10,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import Colors from "@/constants/colors";
-import { useFitness } from "@/providers/FitnessProvider";
-import { useAuth } from "@/providers/AuthProvider";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { WorkoutSession } from "@/types/fitness";
-import { exerciseDatabase, workoutTemplates } from "@/data/exercises";
+import Colors from "@/src/constants/colors";
+import { useFitness } from "@/src/providers/FitnessProvider";
+import { useAuth } from "@/src/providers/AuthProvider";
+import { useLanguage } from "@/src/providers/LanguageProvider";
+import { WorkoutSession } from "@/src/types/fitness";
+import { exerciseDatabase, workoutTemplates } from "@/src/data/exercises";
 
 export default function PlanScreen() {
   const router = useRouter();

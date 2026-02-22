@@ -6,8 +6,8 @@ import {
   User,
 } from "lucide-react-native";
 import React from "react";
-import Colors from "@/constants/colors";
-import { useLanguage } from "@/providers/LanguageProvider";
+import Colors from "@/src/constants/colors";
+import { useLanguage } from "@/src/providers/LanguageProvider";
 
 export default function TabLayout() {
   const { t } = useLanguage();

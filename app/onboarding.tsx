@@ -12,15 +12,15 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Colors from "@/constants/colors";
-import { useFitness } from "@/providers/FitnessProvider";
-import { useLanguage } from "@/providers/LanguageProvider";
+import Colors from "@/src/constants/colors";
+import { useFitness } from "@/src/providers/FitnessProvider";
+import { useLanguage } from "@/src/providers/LanguageProvider";
 import {
   FitnessProfile,
   Goal,
   TrainingLocation,
   ActivityLevel,
-} from "@/types/fitness";
+} from "@/src/types/fitness";
 
 type OnboardingStep = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
