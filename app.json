@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "rork-app",
+    "scheme": "mulhim-app",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -15,14 +15,14 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.rork.mulhim-app-clone"
+      "bundleIdentifier": "com.mulhim.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.mulhim_app_clone"
+      "package": "com.mulhim.app"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -30,9 +30,7 @@
     "plugins": [
       [
         "expo-router",
-        {
-          "origin": "https://rork.com/"
-        }
+        {}
       ],
       "expo-font",
       "expo-web-browser"

@@ -1,6 +1,6 @@
 import { ChefHat, Clock, CheckCircle2, ArrowRight, Plus, Calendar, ShoppingCart, Check, Trash2, X, Sparkles, PackagePlus, ChevronDown, ChevronRight } from "lucide-react-native";
 import React, { useState } from "react";
-import { generateObject } from "@rork-ai/toolkit-sdk";
+import { generateObject } from "@/src/services/openai";
 import { z } from "zod";
 import {
   View,

@@ -17,7 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
 import { useFitness } from "@/providers/FitnessProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
-import { useRorkAgent, createRorkTool } from "@rork-ai/toolkit-sdk";
+import { useOpenAICoach } from "@/src/hooks/useOpenAICoach";
 import { z } from "zod";
 
 
@@ -48,9 +48,12 @@ export default function CoachScreen() {
   const [saveWorkoutToFavorites, setSaveWorkoutToFavorites] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   
-  const { messages, error, sendMessage } = useRorkAgent({
+  const { messages, error, sendMessage } = useOpenAICoach({
+    systemPrompt: language === 'ar'
+      ? "أنت مدرب لياقة بدنية وتغذية متخصص في الثقافة السعودية. أجب دائماً بالعربية وقدم نصائح مخصصة للمستخدم."
+      : "You are a fitness and nutrition coach specialized in Saudi culture. Always provide personalized advice.",
     tools: {
-      suggestWorkout: createRorkTool({
+      suggestWorkout: {
         description: language === 'ar' ? "اقترح تمرين أو عدل خطة التمرين الحالية بناءً على هدف المستخدم ومستواه" : "Suggest a workout or modify the current workout plan based on the user's goal and level",
         zodSchema: z.object({
           muscleGroup: z.string().describe(language === 'ar' ? "المجموعة العضلية المستهدفة (chest, back, legs, shoulders, arms, core)" : "Target muscle group (chest, back, legs, shoulders, arms, core)"),
@@ -65,11 +68,12 @@ export default function CoachScreen() {
         execute: (input) => {
           console.log("[AI Coach] Suggested workout:", input);
           setLastSuggestedWorkout(input);
-          return language === 'ar' ? `تم اقتراح ${input.exercises.length} تمارين لـ ${input.muscleGroup}` : `Suggested ${input.exercises.length} exercises for ${input.muscleGroup}`;
+          const exercisesCount = Array.isArray(input.exercises) ? input.exercises.length : 0;
+          return language === 'ar' ? `تم اقتراح ${exercisesCount} تمارين لـ ${input.muscleGroup}` : `Suggested ${exercisesCount} exercises for ${input.muscleGroup}`;
         },
-      }),
+      },
       
-      suggestMeal: createRorkTool({
+      suggestMeal: {
         description: language === 'ar' ? "اقترح وجبة سعودية تقليدية بناءً على السعرات والبروتين المطلوب" : "Suggest a traditional Saudi meal based on required calories and protein",
         zodSchema: z.object({
           mealType: z.enum(["breakfast", "lunch", "dinner", "snack"]).describe(language === 'ar' ? "نوع الوجبة" : "Meal type"),
@@ -84,9 +88,9 @@ export default function CoachScreen() {
           setLastSuggestedMeal(input);
           return language === 'ar' ? `تم اقتراح وجبة ${input.mealName}` : `Suggested meal ${input.mealName}`;
         },
-      }),
+      },
       
-      trackProgress: createRorkTool({
+      trackProgress: {
         description: language === 'ar' ? "سجل أو حلل تقدم المستخدم في الوزن والقياسات" : "Track or analyze user's progress in weight and measurements",
         zodSchema: z.object({
           metric: z.string().describe(language === 'ar' ? "المقياس (وزن، قياسات، قوة)" : "Metric (weight, measurements, strength)"),
@@ -98,9 +102,9 @@ export default function CoachScreen() {
           console.log("[AI Coach] Progress tracked:", input);
           return language === 'ar' ? `تم تحليل ${input.metric}: ${input.trend}` : `Analyzed ${input.metric}: ${input.trend}`;
         },
-      }),
+      },
       
-      adjustPlan: createRorkTool({
+      adjustPlan: {
         description: language === 'ar' ? "عدل الخطة بناءً على التقدم أو الظروف الجديدة" : "Adjust the plan based on progress or new circumstances",
         zodSchema: z.object({
           planType: z.enum(["workout", "nutrition", "both"]).describe(language === 'ar' ? "نوع الخطة للتعديل" : "Plan type to adjust"),
@@ -111,7 +115,7 @@ export default function CoachScreen() {
           console.log("[AI Coach] Plan adjusted:", input);
           return language === 'ar' ? `تم تعديل خطة ${input.planType}` : `Adjusted ${input.planType} plan`;
         },
-      }),
+      },
     },
   });
   

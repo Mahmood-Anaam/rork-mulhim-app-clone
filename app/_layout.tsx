@@ -6,16 +6,6 @@ import { View } from "react-native";
 import { FitnessProvider } from "@/providers/FitnessProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { LanguageProvider } from "@/providers/LanguageProvider";
-import { trpc, trpcClient } from "@/lib/trpc";
-
-const originalError = console.error;
-console.error = (...args: any[]) => {
-  const message = args[0]?.toString() || '';
-  if (message.includes('PostHog') || message.includes('posthog')) {
-    return;
-  }
-  originalError(...args);
-};
 
 SplashScreen.preventAutoHideAsync();
 
@@ -43,18 +33,17 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <LanguageProvider>
-          <AuthProvider>
-            <FitnessProvider>
-              <View style={{ flex: 1 }}>
-                <RootLayoutNav />
-              </View>
-            </FitnessProvider>
-          </AuthProvider>
-        </LanguageProvider>
-      </QueryClientProvider>
-    </trpc.Provider>
+    <QueryClientProvider client={queryClient}>
+      <LanguageProvider>
+        <AuthProvider>
+          <FitnessProvider>
+            <View style={{ flex: 1 }}>
+              <RootLayoutNav />
+            </View>
+          </FitnessProvider>
+        </AuthProvider>
+      </LanguageProvider>
+    </QueryClientProvider>
   );
 }
+

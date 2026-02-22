@@ -33,13 +33,16 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
+
+# env example is intentionally tracked
+!.env.example
 
 # typescript
 *.tsbuildinfo
 .vercel
 
 .rork
-.env
 rork-eslint.config.js
 core
 node_modules
