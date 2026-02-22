@@ -33,6 +33,7 @@ yarn-error.*
 
 # local env files
 .env*.local
+!.env.example
 
 # typescript
 *.tsbuildinfo
@@ -40,6 +41,7 @@ yarn-error.*
 
 .rork
 .env
+!.env.example
 rork-eslint.config.js
 core
 node_modules
