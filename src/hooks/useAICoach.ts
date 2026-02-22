@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { openAIService, ChatMessage } from '@/services/openAIService';
+import { geminiService } from '@/services/geminiService';
 import { useLanguage } from '@/context/LanguageProvider';
+import { CONFIG } from '@/utils/config';
 
 export interface UIStreamMessage {
   id: string;
@@ -49,7 +51,9 @@ export const useAICoach = () => {
     ];
 
     try {
-      const response = await openAIService.chat(apiMessages);
+      const response = CONFIG.GEMINI_API_KEY
+        ? await geminiService.chat(apiMessages)
+        : await openAIService.chat(apiMessages);
 
       let finalContent = response;
       let toolData: any = null;
