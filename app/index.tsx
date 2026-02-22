@@ -1,7 +1,7 @@
 import { Redirect } from "expo-router";
-import { useFitness } from "@/providers/FitnessProvider";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { useAuth } from "@/providers/AuthProvider";
+import { useFitness } from "@/context/FitnessProvider";
+import { useLanguage } from "@/context/LanguageProvider";
+import { useAuth } from "@/context/AuthProvider";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import Colors from "@/constants/colors";
 

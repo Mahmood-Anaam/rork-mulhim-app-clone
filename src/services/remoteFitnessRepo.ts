@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase } from '@/api/supabase';
 import type {
   FitnessProfile,
   ProgressEntry,
@@ -46,16 +46,18 @@ function wrapNetworkError(error: any): never {
 }
 
 function handleSupabaseError(error: any, context: string): never {
+  const errorMessage = error.message || 'Unknown database error';
   console.error(`[RemoteRepo] ${context}:`, JSON.stringify({
-    message: error.message,
+    message: errorMessage,
     details: error.details,
     hint: error.hint,
     code: error.code,
   }, null, 2));
-  if (error.message?.includes('Failed to fetch') || error.message?.includes('fetch')) {
-    throw new Error('NETWORK_ERROR');
+
+  if (errorMessage.includes('Failed to fetch') || errorMessage.includes('fetch')) {
+    throw new Error('Connection lost. Please check your internet.');
   }
-  throw error;
+  throw new Error(`${context}: ${errorMessage}`);
 }
 
 export const remoteFitnessRepo = {
