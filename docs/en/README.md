@@ -133,6 +133,8 @@ npm run start-web
 
 ## App Screens & User Flow
 
+> 📸 **Screenshots**: See [docs/screenshots/](../screenshots/README.md) for screenshots of all app screens.
+
 ### 1. Welcome Screen (`welcome.tsx`)
 - **Purpose**: Language selection (Arabic / English)
 - **Actions**: User selects their preferred language
