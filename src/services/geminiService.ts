@@ -26,7 +26,7 @@ export const geminiService = {
 
       const chatHistory = messages.filter(m => m.role !== 'system');
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${cleanKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${cleanKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
